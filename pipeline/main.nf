@@ -127,6 +127,6 @@ workflow {
     | concat_fastq \
     | run_humann2 
     
-    renorm_genefamilies(run_humann2.out.genefamilies) | view
-    renorm_pathabundance(run_humann2.out.pathabundance)  | view
+    renorm_genefamilies(run_humann2.out.genefamilies) 
+    renorm_pathabundance(run_humann2.out.pathabundance)  
 }
