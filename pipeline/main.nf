@@ -25,8 +25,8 @@ nextflow.preview.dsl=2
 // TODO: fastqc?
 
 params.in         = "SRR000237,SRR000238"
-params.nucdb      = "" // chocophlan
-params.protdb     = "" // uniref
+params.nucdb      = "gs://gcs.public.cancerdatasci.org/cmgd/databases/full_chocophlan/" // chocophlan
+params.protdb     = "gs://gcs.public.cancerdatasci.org/cmgd/databases/uniref90_201901.dmnd" // uniref
 params.bucket     = ""
 params.run_uuid   = "this-will-be-a-uuid"
 
@@ -67,14 +67,16 @@ process run_humann2 {
     publishDir 'gs://temp-testing/humann2_test/'
 
     input:
-        path fastq
+    path fastq
+    path protb params.nucdb
+    path nucdb params.protdb
     output:
     path "${params.run_uuid}/*"
     path "${params.run_uuid}/sample_genefamilies.tsv", emit: genefamilies
     path "${params.run_uuid}/sample_pathabundance.tsv", emit: pathabundance
     // mkdir -p ${sample}/humann2
     script:
-        """mkdir ${params.run_uuid} && humann2 --input ${fastq} --output ${params.run_uuid} --nucleotide-database ${params.nucdb} --protein-database ${params.protdb} --metaphlan /Users/sdavis2/git/CMGD/cmgd_coordinator/pipeline/biobakery-metaphlan2-5bd7cd0e4854/ --threads=8""" // && gzip -r ${params.run_uuid}"""
+        """humann2 --input ${fastq} --output . --nucleotide-database ${params.nucdb} --protein-database ${params.protdb} --metaphlan /Users/sdavis2/git/CMGD/cmgd_coordinator/pipeline/biobakery-metaphlan2-5bd7cd0e4854/ --threads=8""" // && gzip -r ${params.run_uuid}"""
 }
 
 
@@ -88,10 +90,10 @@ process renorm_genefamilies {
     input:
     path genefamilies
     output:
-        path "${params.run_uuid}/*"
+        path "*"
 
     script:
-        """mkdir ${params.run_uuid} && humann2_renorm_table --input ${genefamilies} --output ${params.run_uuid}/sample_genefamilies_relab.tsv --units relab"""
+        """humann2_renorm_table --input ${genefamilies} --output sample_genefamilies_relab.tsv --units relab"""
 }
 
 
@@ -99,15 +101,15 @@ process renorm_genefamilies {
 process renorm_pathabundance {
     tag "${params.run_uuid}"
 
-    publishDir 'gs://temp-testing/humann2_test/'
+    publishDir '${params.bucket}/${params.run_uuid}/humann2_test/'
 
     input:
     path pathabundance
     output:
-        path "${params.run_uuid}/*"
+        path "*"
 
     script:
-        """mkdir ${params.run_uuid} && humann2_renorm_table --input ${pathabundance} --output ${params.run_uuid}/sample_pathabundance_relab.tsv --units relab"""
+        """humann2_renorm_table --input ${pathabundance} --output sample_pathabundance_relab.tsv --units relab"""
 }
 
 
